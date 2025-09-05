@@ -1,0 +1,3254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeInvestMax</title>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js"></script>
+    
+    <style>
+        /* --- Global Styles --- */
+        :root {
+            --primary-color: #0a7afe;
+            --secondary-color: #0c204d;
+            --background-color: #f0f2f5;
+            --text-color: #333;
+            --light-text-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --pending-color: #ffc107;
+            --border-radius: 12px;
+            --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Hind Siliguri', sans-serif;
+        }
+        
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            overscroll-behavior-y: contain; /* Prevent pull-to-refresh */
+        }
+        
+        .app-container {
+            max-width: 450px;
+            margin: auto;
+            background-color: var(--card-bg);
+            min-height: 100vh;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .screen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: var(--background-color);
+            transition: opacity 0.3s ease;
+            padding-bottom: 85px; /* Space for nav bar */
+        }
+        
+        .screen.active {
+            display: block;
+        }
+
+        .screen.no-nav {
+            padding-bottom: 20px;
+        }
+        
+        /* --- Utility Classes --- */
+        .form-group {
+            margin-bottom: 18px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 5px rgba(10, 122, 254, 0.3);
+        }
+        
+        .btn {
+            display: inline-block;
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+        
+        .btn[disabled] {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: var(--light-text-color);
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+            color: var(--light-text-color);
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .mt-2 {
+            margin-top: 10px;
+        }
+        
+        .mt-3 {
+            margin-top: 20px;
+        }
+        
+        .mt-4 {
+            margin-top: 30px;
+        }
+        
+        .link {
+            color: var(--primary-color);
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        /* --- Splash Screen --- */
+        #splash-screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+        }
+        
+        .logo {
+            width: 100px;
+            height: 100px;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+        
+        .app-name {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        
+        .loader {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #fff;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-top: 30px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* --- Login & Registration --- */
+        .auth-container {
+            padding-top: 40px;
+        }
+        
+        .auth-container h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--secondary-color);
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .checkbox-group input {
+            margin-right: 10px;
+        }
+        
+        .extra-links {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+        }
+        
+        /* --- Home Screen --- */
+        #home-screen {
+            padding: 0;
+        }
+        
+        .header {
+            background: linear-gradient(90deg, var(--primary-color), #0e4c92);
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+        }
+        
+        .profile-pic {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background-color: #fff;
+            cursor: pointer;
+            object-fit: cover;
+            border: 2px solid white;
+        }
+        
+        .balance-info {
+            text-align: center;
+        }
+        
+        .balance-info span {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .balance-info h2 {
+            font-size: 28px;
+            margin: 0;
+        }
+        
+        .deposit-btn {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: 500;
+            border: 1px solid white;
+        }
+        
+        .main-content {
+            padding: 20px;
+        }
+        
+        /* Banner Slider */
+        .banner-slider {
+            width: 100%;
+            overflow: hidden;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 25px;
+            position: relative;
+            background-color: #eee;
+            min-height: 150px;
+        }
+        
+        .slides-container {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
+        }
+        
+        .slide {
+            min-width: 100%;
+        }
+        
+        .slide img {
+            width: 100%;
+            display: block;
+            height: 150px;
+            object-fit: cover;
+        }
+        
+        /* Button Grid */
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .grid-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            text-decoration: none;
+            color: var(--text-color);
+        }
+        
+        .grid-icon {
+            width: 50px;
+            height: 50px;
+            background-color: #eaf2ff;
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 24px;
+            color: var(--primary-color);
+        }
+        
+        .grid-item span {
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+        }
+        
+        /* Product List */
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--secondary-color);
+        }
+        
+        .product-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .product-card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            overflow: hidden;
+            padding: 10px;
+            position: relative;
+        }
+
+        .buy-product-icon {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 30px;
+            height: 30px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .product-card img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            background-color: #eee;
+        }
+        
+        .product-info {
+            padding: 10px 0 0;
+        }
+        
+        .product-info h4 {
+            font-size: 15px;
+            margin-bottom: 5px;
+        }
+        
+        .product-price {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        /* Navigation Bar */
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 450px;
+            height: 65px;
+            background-color: var(--card-bg);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            z-index: 1000;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            color: #888;
+        }
+        
+        .nav-item.active {
+            color: var(--primary-color);
+        }
+        
+        .nav-item i {
+            font-size: 22px;
+        }
+        
+        .nav-item span {
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        
+        /* --- Profile Page --- */
+        #profile-screen .profile-header {
+            text-align: center;
+            padding: 20px 0;
+            position: relative;
+        }
+        
+        #profile-screen .main-profile-pic {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 4px solid var(--primary-color);
+            margin-bottom: 10px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+        
+        #profile-screen .info-group {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: var(--box-shadow);
+        }
+        
+        #profile-screen .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        #profile-screen .info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .password-field {
+            display: flex;
+            align-items: center;
+        }
+        
+        .password-field input {
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 16px;
+            width: 100px;
+        }
+        
+        .password-field i {
+            cursor: pointer;
+            color: #888;
+            margin-left: 10px;
+        }
+        
+        /* Profile Gallery Popup */
+        .gallery-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+            padding: 20px;
+        }
+        
+        .gallery-container {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .gallery-item {
+            width: 100%;
+            padding-top: 100%; /* 1:1 Aspect Ratio */
+            position: relative;
+            cursor: pointer;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .gallery-item img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .gallery-item.selected {
+            border: 3px solid var(--primary-color);
+        }
+        
+        /* --- Deposit Page --- */
+        .payment-method-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+        }
+        
+        .method-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .method-card.selected {
+            border-color: var(--primary-color);
+            background-color: #eaf2ff;
+            transform: scale(1.05);
+        }
+        
+        .method-card img {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            margin-bottom: 5px;
+        }
+        
+        .method-card span {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        /* Deposit Notice */
+        .deposit-notice {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        
+        /* --- Popup/Modal --- */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .popup-content {
+            background: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            width: 85%;
+            max-width: 350px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+            animation: popup-appear 0.3s ease-out;
+        }
+
+        .popup-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        @keyframes popup-appear {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .popup-content h3 {
+            margin-bottom: 15px;
+            color: var(--secondary-color);
+        }
+        
+        .popup-content p {
+            margin-bottom: 25px;
+            color: #555;
+        }
+        
+        /* New screen styles */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+        
+        .back-btn {
+            font-size: 20px;
+            cursor: pointer;
+        }
+        
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: var(--box-shadow);
+        }
+        
+        .wallet-item, .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .wallet-item:last-child, .history-item:last-child {
+            border-bottom: none;
+        }
+        
+        .support-method {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        
+        .support-method:last-child {
+            border-bottom: none;
+        }
+        
+        .support-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #eaf2ff;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+            color: var(--primary-color);
+            font-size: 18px;
+        }
+        
+        .referral-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .stat-box {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            text-align: center;
+            flex: 1;
+            margin: 0 5px;
+            box-shadow: var(--box-shadow);
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #777;
+        }
+        
+        .referral-list {
+            margin-top: 20px;
+        }
+        
+        .referral-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .referral-item:last-child {
+            border-bottom: none;
+        }
+        
+        .referral-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 15px;
+            object-fit: cover;
+        }
+        
+        .savings-card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: var(--box-shadow);
+            position: relative;
+        }
+        
+        .savings-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--primary-color);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        
+        .coin-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+        
+        .coin-card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            text-align: center;
+            box-shadow: var(--box-shadow);
+            cursor: pointer;
+        }
+        
+        .coin-card.selected {
+            border: 2px solid var(--primary-color);
+            background-color: #eaf2ff;
+        }
+        
+        .coin-icon {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 10px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .loan-status {
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: var(--border-radius);
+        }
+        
+        .available {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .not-available {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .lottery-card {
+            background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--box-shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .lottery-card-image {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+
+        .lottery-card-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .lottery-prizes {
+            margin: 15px 0;
+            text-align: left;
+        }
+
+        .lottery-prize {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .lottery-prize i {
+            margin-right: 10px;
+            color: #ffc107;
+        }
+
+        .lottery-draw-date {
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .lottery-history-list {
+            margin-top: 20px;
+        }
+
+        .lottery-ticket-card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ticket-info {
+            font-family: monospace;
+            font-size: 16px;
+        }
+
+        .ticket-user {
+            font-size: 12px;
+            color: #777;
+        }
+
+        /* Password Update Form */
+        #password-update-form {
+            display: none;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        /* Withdraw Admin List */
+        .admin-list {
+            margin: 15px 0;
+        }
+        
+        .admin-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        
+        .admin-item.selected {
+            border-color: var(--primary-color);
+            background-color: #eaf2ff;
+        }
+        
+        .admin-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 15px;
+            object-fit: cover;
+        }
+        
+        .admin-details {
+            flex: 1;
+        }
+        
+        .admin-name {
+            font-weight: 600;
+        }
+        
+        .admin-method {
+            font-size: 14px;
+            color: #777;
+        }
+        
+        /* New styles for additional features */
+        .amount-conversion {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .method-details-display {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: left;
+        }
+        
+        .method-details-display img {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        .transaction-history-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+        
+        .transaction-history-filters .btn {
+            width: auto;
+            padding: 8px 15px;
+            flex-shrink: 0;
+        }
+        
+        .kyc-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+        
+        .kyc-verified {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .kyc-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .kyc-rejected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .kyc-unverified {
+            background-color: #e2e3e5;
+            color: #383d41;
+        }
+        
+        .gift-card {
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            position: relative;
+        }
+
+        .gift-card-occasion {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--secondary-color);
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 5px 12px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        
+        .gift-card-amount {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 10px 0;
+        }
+        
+        .gift-card-code {
+            background-color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            letter-spacing: 2px;
+            margin: 15px 0;
+        }
+        
+        .gift-card-message {
+            font-style: italic;
+            margin: 10px 0;
+        }
+        
+        .gift-card-date {
+            font-size: 12px;
+            color: #777;
+            margin-top: 10px;
+        }
+        
+        .gift-card-status {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 15px;
+            background: #eee;
+            color: #555;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .gift-card-status.complete {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        /* Send Money Page */
+        .user-search {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+        }
+        
+        .search-result-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        
+        .search-result-item:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .transfer-fee {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        /* P2P Trading */
+        .p2p-tabs {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .p2p-tab-buttons {
+            display: flex;
+            background-color: #eaf2ff;
+            border-radius: var(--border-radius);
+            padding: 5px;
+        }
+        .p2p-tab {
+            padding: 8px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+        .p2p-tab.active {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: var(--box-shadow);
+        }
+        .p2p-dropdown {
+            position: relative;
+        }
+        .p2p-dropdown-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .p2p-dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: white;
+            min-width: 160px;
+            box-shadow: var(--box-shadow);
+            border-radius: var(--border-radius);
+            z-index: 1;
+        }
+        .p2p-dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+        }
+        .p2p-dropdown-content a:hover {background-color: #f1f1f1;}
+        .p2p-dropdown:hover .p2p-dropdown-content {display: block;}
+
+        .p2p-offer {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .p2p-offer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .p2p-user {
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+
+        .online-status {
+            position: absolute;
+            bottom: 0;
+            right: 35px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        .online-status.online { background-color: #28a745; }
+        .online-status.offline { background-color: #dc3545; }
+        
+        .p2p-user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+            object-fit: cover;
+        }
+        
+        .p2p-rating {
+            color: #ffc107;
+        }
+        
+        .p2p-offer-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .p2p-price {
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--primary-color);
+        }
+        
+        .p2p-limits, .p2p-available {
+            color: #777;
+        }
+
+        .p2p-payment-methods {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .p2p-payment-tag {
+            background-color: #f0f2f5;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+        }
+
+    </style>
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 1. Splash Screen -->
+        <div id="splash-screen" class="screen active no-nav">
+            <div class="logo">SI</div>
+            <div class="app-name">SafeInvestMax</div>
+            <div class="loader"></div>
+        </div>
+        
+        <!-- 2. Login Screen -->
+        <div id="login-screen" class="screen no-nav">
+            <div class="auth-container">
+                <h2>Welcome!</h2>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="login-email">Email</label>
+                        <input type="email" id="login-email" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                    <div class="extra-links">
+                        <a href="#" class="link" onclick="showScreen('forgot-password-screen')">Forgot Password?</a>
+                        <a href="#" class="link" onclick="showScreen('register-screen')">Register</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 3. Forgot Password Screen -->
+        <div id="forgot-password-screen" class="screen no-nav">
+            <div class="auth-container">
+                <h2>Password Reset</h2>
+                <p class="text-center" style="margin-bottom: 20px;">Enter your registered email, we will send a reset link.</p>
+                <form id="forgot-password-form">
+                    <div class="form-group">
+                        <label for="forgot-email">Email</label>
+                        <input type="email" id="forgot-email" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send Link</button>
+                    <div class="text-center mt-3">
+                        <a href="#" class="link" onclick="showScreen('login-screen')">Back to Login</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 4. Registration Screen -->
+        <div id="register-screen" class="screen no-nav">
+            <div class="auth-container">
+                <h2>Create New Account</h2>
+                <form id="register-form">
+                    <div class="form-group">
+                        <label for="reg-fullname">Full Name</label>
+                        <input type="text" id="reg-fullname" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-mobile">Mobile Number</label>
+                        <input type="tel" id="reg-mobile" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-email">Email</label>
+                        <input type="email" id="reg-email" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-password">Password (min 6 characters)</label>
+                        <input type="password" id="reg-password" class="form-control" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-confirm-password">Confirm Password</label>
+                        <input type="password" id="reg-confirm-password" class="form-control" required>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="terms-conditions" required>
+                        <label for="terms-conditions">I agree to the <a href="#" class="link" onclick="showScreen('terms-screen', 'register-screen')">Terms & Conditions</a></label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Register</button>
+                    <div class="text-center mt-3">
+                        <a href="#" class="link" onclick="showScreen('login-screen')">I already have an account</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Terms Page -->
+        <div id="terms-screen" class="screen no-nav">
+            <div class="page-header">
+                <i class="fa-solid fa-arrow-left back-btn" onclick="goBack()"></i>
+                <h2 class="page-title">Terms & Conditions</h2>
+                <div style="width: 20px;"></div>
+            </div>
+            
+            <div class="card">
+                <p>Here will be all the terms and conditions of your app. In a real app, this text can be changed dynamically from the admin panel.</p>
+                <ol>
+                    <li>User must be at least 18 years old.</li>
+                    <li>Account may be blocked for any illegal activity.</li>
+                    <li>We are committed to protecting user privacy.</li>
+                    <li>Investment market is risky, invest at your own responsibility.</li>
+                </ol>
+            </div>
+        </div>
+        
+        <!-- 5-9. Home Screen -->
+        <div id="home-screen" class="screen">
+            <!-- Header -->
+            <div class="header">
+                <img id="home-profile-pic" src="https://i.pravatar.cc/150" alt="Profile" class="profile-pic" onclick="showScreen('profile-screen')">
+                <div class="balance-info">
+                    <span>Total Balance</span>
+                    <h2 id="home-balance">$0.00</h2>
+                </div>
+                <a href="#" class="deposit-btn" onclick="showScreen('deposit-screen')">Deposit</a>
+            </div>
+            
+            <div class="main-content">
+                <!-- Banner Slider -->
+                <div class="banner-slider" id="banner-slider">
+                    <div class="slides-container" id="slides-container">
+                        <!-- Banners will be loaded from Firebase -->
+                    </div>
+                </div>
+                
+                <!-- Button Grid -->
+                <div class="button-grid">
+                    <a href="#" class="grid-item" onclick="showScreen('referral-screen')"><div class="grid-icon"><i class="fa-solid fa-users"></i></div><span>Refer</span></a>
+                    <a href="#" class="grid-item" onclick="showScreen('savings-screen')"><div class="grid-icon"><i class="fa-solid fa-piggy-bank"></i></div><span>Savings</span></a>
+                    <a href="#" class="grid-item" onclick="showScreen('exchange-screen')"><div class="grid-icon"><i class="fa-solid fa-exchange-alt"></i></div><span>Exchange</span></a>
+                    <a href="#" class="grid-item" onclick="showScreen('loan-screen')"><div class="grid-icon"><i class="fa-solid fa-hand-holding-dollar"></i></div><span>Loan</span></a>
+                    <a href="#" class="grid-item" onclick="showScreen('lottery-screen')"><div class="grid-icon"><i class="fa-solid fa-ticket"></i></div><span>Lottery</span></a>
+                    <a href="#" class="grid-item" onclick="showScreen('send-money-screen')"><div class="grid-icon"><i class="fa-solid fa-paper-plane"></i></div><span>Send Money</span></a>
+                    <a href="#" class="grid-item" onclick="showScreen('p2p-screen')"><div class="grid-icon"><i class="fa-solid fa-user-group"></i></div><span>P2P</span></a>
+                    <a href="#" class="grid-item" onclick="showScreen('gift-card-screen')"><div class="grid-icon"><i class="fa-solid fa-gift"></i></div><span>Gift Card</span></a>
+                </div>
+                
+                <!-- Product List -->
+                <h3 class="section-title">Popular Products</h3>
+                <div class="product-list" id="product-list">
+                    <!-- Products will be loaded from Firebase -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 10. Profile Screen -->
+        <div id="profile-screen" class="screen">
+            <div class="page-header">
+                <i class="fa-solid fa-arrow-left back-btn" onclick="showScreen('home-screen')"></i>
+                <h2 class="page-title">My Profile</h2>
+                <div style="width: 20px;"></div>
+            </div>
+            
+            <div class="profile-header">
+                <img id="profile-pic" src="https://i.pravatar.cc/150" alt="Profile" class="main-profile-pic" onclick="showProfileGallery()">
+                <h3 id="profile-name">John Doe</h3>
+                <div id="kyc-status" class="kyc-status kyc-unverified">Unverified</div>
+            </div>
+            
+            <div class="info-group">
+                <div class="info-item">
+                    <span>Email</span>
+                    <span id="profile-email">user@example.com</span>
+                </div>
+                <div class="info-item">
+                    <span>Mobile</span>
+                    <span id="profile-mobile">+1234567890</span>
+                </div>
+                <div class="info-item">
+                    <span>Password</span>
+                    <div class="password-field">
+                        <input type="password" value="********" disabled id="password-display">
+                        <i class="fa-solid fa-eye" onclick="togglePasswordVisibility()"></i>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <span>Referral Code</span>
+                    <span id="referral-code">ABC123</span>
+                </div>
+                <div class="info-item">
+                    <span>KYC Verification</span>
+                    <a href="#" class="link" onclick="showScreen('kyc-screen')">Verify Now</a>
+                </div>
+                <div class="info-item">
+                    <span>Terms & Conditions</span>
+                    <a href="#" class="link" onclick="showScreen('terms-screen', 'profile-screen')">View</a>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <button class="btn btn-secondary" onclick="logout()">Logout</button>
+            </div>
+            
+            <!-- Password Update Form (Hidden by default) -->
+            <div id="password-update-form">
+                <div class="form-group">
+                    <label for="current-password">Current Password</label>
+                    <input type="password" id="current-password" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="new-password">New Password</label>
+                    <input type="password" id="new-password" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="confirm-new-password">Confirm New Password</label>
+                    <input type="password" id="confirm-new-password" class="form-control">
+                </div>
+                <button class="btn btn-primary" onclick="updatePassword()">Update Password</button>
+                <button class="btn btn-secondary mt-2" onclick="cancelPasswordUpdate()">Cancel</button>
+            </div>
+        </div>
+        
+        <!-- Profile Gallery Popup -->
+        <div class="gallery-popup" id="gallery-popup">
+            <div class="gallery-container">
+                <h3>Select Profile Picture</h3>
+                <div class="gallery-grid">
+                    <div class="gallery-item selected" onclick="selectGalleryImage(this, 'https://i.pravatar.cc/150')">
+                        <img src="https://i.pravatar.cc/150" alt="Profile 1">
+                    </div>
+                    <div class="gallery-item" onclick="selectGalleryImage(this, 'https://i.pravatar.cc/151')">
+                        <img src="https://i.pravatar.cc/151" alt="Profile 2">
+                    </div>
+                    <div class="gallery-item" onclick="selectGalleryImage(this, 'https://i.pravatar.cc/152')">
+                        <img src="https://i.pravatar.cc/152" alt="Profile 3">
+                    </div>
+                    <div class="gallery-item" onclick="selectGalleryImage(this, 'https://i.pravatar.cc/153')">
+                        <img src="https://i.pravatar.cc/153" alt="Profile 4">
+                    </div>
+                    <div class="gallery-item" onclick="selectGalleryImage(this, 'https://i.pravatar.cc/154')">
+                        <img src="https://i.pravatar.cc/154" alt="Profile 5">
+                    </div>
+                    <div class="gallery-item" onclick="selectGalleryImage(this, 'https://i.pravatar.cc/155')">
+                        <img src="https://i.pravatar.cc/155" alt="Profile 6">
+                    </div>
+                    <div class="gallery-item" onclick="selectGalleryImage(this, 'https://i.pravatar.cc/156')">
+                        <img src="https://i.pravatar.cc/156" alt="Profile 7">
+                    </div>
+                    <div class="gallery-item" onclick="selectGalleryImage(this, 'https://i.pravatar.cc/157')">
+                        <img src="https://i.pravatar.cc/157" alt="Profile 8">
+                    </div>
+                </div>
+                <button class="btn btn-primary mt-3" onclick="saveProfilePicture()">Save</button>
+                <button class="btn btn-secondary mt-2" onclick="closeGallery()">Cancel</button>
+            </div>
+        </div>
+        
+        <!-- 11. Wallet Screen -->
+        <div id="wallet-screen" class="screen">
+            <div class="page-header">
+                <i class="fa-solid fa-arrow-left back-btn" onclick="showScreen('home-screen')"></i>
+                <h2 class="page-title">My Wallet</h2>
+                <div style="width: 20px;"></div>
+            </div>
+            
+            <div class="card">
+                <div class="wallet-item">
+                    <span>Total Balance</span>
+                    <span id="wallet-balance">$0.00</span>
+                </div>
+                <div class="wallet-item">
+                    <span>Available Balance</span>
+                    <span id="available-balance">$0.00</span>
+                </div>
+                <div class="wallet-item">
+                    <span>Locked Balance</span>
+                    <span id="locked-balance">$0.00</span>
+                </div>
+            </div>
+            
+            <h3 class="section-title mt-4">My Products</h3>
+            <div id="wallet-products">
+                <!-- User's purchased products will be loaded here -->
+            </div>
+
+            <h3 class="section-title mt-4">My Coins</h3>
+            <div id="wallet-coins">
+                <!-- User's purchased coins will be loaded here -->
+            </div>
+        </div>
+        
+        <!-- 12. Deposit Screen -->
+        <div id="deposit-screen" class="screen">
+            <div class="page-header">
+                <i class="fa-solid fa-arrow-left back-btn" onclick="showScreen('home-screen')"></i>
+                <h2 class="page-title">Deposit Funds</h2>
+                <div style="width: 20px;"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="deposit-amount">Amount (USD)</label>
+                <input type="number" id="deposit-amount" class="form-control" placeholder="Enter amount">
+            </div>
+            
+            <h3 class="section-title">Select Payment Method</h3>
+            <div class="payment-method-grid" id="payment-methods">
+                <!-- Payment methods cards from admin will be loaded from Firebase -->
+            </div>
+            
+            <div id="deposit-details-section" style="display: none;">
+                <div id="method-details" class="method-details-display">
+                    <!-- Selected method details will be shown here -->
+                </div>
+                
+                <div id="deposit-input-fields">
+                    <!-- Dynamic input fields based on admin settings will be shown here -->
+                </div>
+                
+                <button class="btn btn-primary mt-3" id="deposit-button" onclick="processDeposit()">Submit Request</button>
+            </div>
+            
+            <div class="deposit-notice">
+                <p><strong>Note:</strong> Your deposit will be processed after verification. For any issue, contact support.</p>
+            </div>
+        </div>
+        
+        <!-- 13. Withdraw Screen (From Nav Bar) -->
+        <div id="withdraw-screen" class="screen">
+            <div class="page-header">
+                <i class="fa-solid fa-arrow-left back-btn" onclick="showScreen('home-screen')"></i>
+                <h2 class="page-title">Withdraw Funds</h2>
+                <div style="width: 20px;"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="withdraw-amount">Amount (USD)</label>
+                <input type="number" id="withdraw-amount" class="form-control" placeholder="Enter amount">
+            </div>
+            
+            <h3 class="section-title">Select Withdrawal Method</h3>
+            <div class="admin-list" id="withdraw-admin-list">
+                <!-- Withdrawal admin cards will be loaded from Firebase -->
+            </div>
+            
+            <div id="withdrawal-details-section" style="display: none;">
+                 <div id="withdraw-input-fields">
+                    <!-- Dynamic input fields based on admin settings will be shown here -->
+                </div>
+                <button class="btn btn-primary mt-3" id="withdraw-button" onclick="processWithdrawal()">Submit Request</button>
+            </div>
+            
+            <div class="deposit-notice">
+                <p><strong>Note:</strong> Withdrawal processing time is 1-24 hours. Minimum withdrawal amount is $5.</p>
+            </div>
+        </div>
+        
+        <!-- 14. History Screen -->
+        <div id="history-screen" class="screen">
+            <div class="page-header">
+                <i class="fa-solid fa-arrow-left back-btn" onclick="showScreen('home-screen')"></i>
+                <h2 class="page-title">Transaction History</h2>
+                <div style="width: 20px;"></div>
+            </div>
+            
+            <div class="transaction-history-filters">
+                <button class="btn btn-primary" onclick="filterAllHistory('all')">All</button>
+                <button class="btn btn-secondary" onclick="filterAllHistory('deposit')">Deposits</button>
+                <button class="btn btn-secondary" onclick="filterAllHistory('withdraw')">Withdrawals</button>
+                <button class="btn btn-secondary" onclick="filterAllHistory('sent')">Sent</button>
+                 <button class="btn btn-secondary" onclick="filterAllHistory('received')">Received</button>
+            </div>
+            
+            <div id="history-list">
+                <!-- History items will be loaded here -->
+            </div>
+        </div>
+        
+        <!-- 15. Support Screen -->
+        <div id="support-screen" class="screen">
+            <div class="page-header">
+                <i class="fa-solid fa-arrow-left back-btn" onclick="showScreen('home-screen')"></i>
+                <h2 class="page-title">Support Center</h2>
+                <div style="width: 20px;"></div>
+            </div>
+            
+            <div class="card">
+                <p>If you have any questions or need assistance, please contact our support team through one of the following methods:</p>
+            </div>
+            
+            <div class="card">
+                <div class="support-method" onclick="contactSupport('whatsapp')">
+                    <div class="support-icon"><i class="fa-brands fa-whatsapp"></i></div>
+                    <div>
+                        <h4>WhatsApp</h4>
+                        <p>+1 234 567 8900</p>
+                    </div>
+                </div>
+                <div class="support-method" onclick="contactSupport('telegram')">
+                    <div class="support-icon"><i class="fa-brands fa-telegram"></i></div>
+                    <div>
+                        <h4>Telegram</h4>
+                        <p>@SafeInvestSupport</p>
+                    </div>
+                </div>
+                <div class="support-method" onclick="contactSupport('email')">
+                    <div class="support-icon"><i class="fa-solid fa-envelope"></i></div>
+                    <div>
+                        <h4>Email</h4>
+                        <p>support@safinvestmax.com</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h4>Frequently Asked Questions</h4>
+                 <p class="text-center mt-2">FAQs will be loaded from admin panel.</p>
+            </div>
+        </div>
+        
+        <!-- 16. Referral Screen -->
+        <div id="referral-screen" class="screen">
+            <div class="page-header">
+                <i class="fa-solid fa-arrow-left back-btn" onclick="showScreen('home-screen')"></i>
+                <h2 class="page-title">Refer & Earn</h2>
+                <div style="width: 20px;"></div>
+            </div>
+            
+            <div class="referral-stats">
+                <div class="stat-box">
+                    <div class="stat-value" id="total-referrals">0</div>
+                    <div class="stat-label">Total Referrals</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="active-referrals">0</div>
+                    <div class="stat-label">Active</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="referral-earnings">$0</div>
+                    <div class="stat-label">Earnings</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h4>Your Referral Code</h4>
+                <div class="text-center">
+                    <div class="gift-card-code" id="user-referral-code">ABC123DEF</div>
+                </div>
+            </div>
+            
+            <h3 class="section-title">Your Referrals</h3>
+            <div id="referral-list">
+                <!-- Referral list will be loaded here -->
+            </div>
+        </div>
+        
+        <!-- 17. Savings Screen -->
+        <div id="savings-screen" class="screen">
+            <div class="page-header">
+                <i class="fa-solid fa-arrow-left back-btn" onclick="showScreen('home-screen')"></i>
+                <h2 class="page-title">Savings Plans</h2>
+                <div style="width: 20px;"></div>
+            </div>
+            
+            <div id="savings-plans">
+                <!-- Savings plans will be loaded from Firebase -->
+            </div>
+
+            <h3 class="section-title mt-4">My Active Savings</h3>
+            <div id="active-savings-list">
+                <!-- Active savings plans will be shown here -->
+            </div>
+        </div>
+        
+        <!-- 18. Exchange Screen -->
+        <div id="exchange-screen" class="screen">
+            <div class="page-header">
+                <i class="fa-solid fa-arrow-left back-btn" onclick="showScreen('home-screen')"></i>
+                <h2 class="page-title">Exchange Coins</h2>
+                <div style="width: 20px;"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="from-coin">From</label>
+                <select id="from-coin" class="form-control" onchange="calculateExchange()">
+                    <!-- Options will be loaded from Firebase -->
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="from-amount">Amount</label>
+                <input type="number" id="from-amount" class="form-control" placeholder="Enter amount" oninput="calculateExchange()">
+            </div>
+            
+            <div class="text-center">
+                <i class="fa-solid fa-exchange-alt" style="font-size: 24px; color: var(--primary-color);"></i>
+            </div>
+            
+            <div class="form-group">
+                <label for="to-coin">To</label>
+                <select id="to-coin" class="form-control" onchange="calculateExchange()">
+                    <!-- Options will be loaded from Firebase -->
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="to-amount">You Will Get</label>
+                <input type="text" id="to-amount" class="form-control" readonly>
+            </div>
+            
+            <div class="amount-conversion">
+                <span>Exchange Rate: 1 <span id="from-coin-label">BTC</span> = <span id="exchange-rate">0</span> <span id="to-coin-label">USDT</span></span>
+            </div>
+            
+            <button class="btn btn-primary" onclick="executeExchange()">Exchange Now</button>
+        </div>
+        
+        <!-- 19. Loan Screen -->
+        <div id="loan-screen" class="screen">
+            <div class="page-header">
+                <i class="fa-solid fa-arrow-left back-btn" onclick="showScreen('home-screen')"></i>
+                <h2 class="page-title">Loan Services</h2>
+                <div style="width: 20px;"></div>
+            </div>
+            
+            <div class="loan-status not-available" id="loan-eligibility-status">
+                <h3>Loan Not Available</h3>
+                <p>You need to have an active savings plan to be eligible for a loan.</p>
+            </div>
+            
+            <div id="loan-application-form" style="display: none;">
+                <div class="form-group">
+                    <label for="loan-amount">Loan Amount ($)</label>
+                    <input type="number" id="loan-amount" class="form-control" placeholder="Enter amount">
+                </div>
+                
+                <div class="form-group">
+                    <label for="loan-duration">Loan Duration</label>
+                    <select id="loan-duration" class="form-control">
+                        <!-- Loan durations will be loaded from admin settings -->
+                    </select>
+                </div>
+                
+                <div class="card">
+                    <h4>Loan Details</h4>
+                    <div class="info-item">
+                        <span>Interest Rate</span>
+                        <span id="loan-interest-rate">0%</span>
+                    </div>
+                    <div class="info-item">
+                        <span>Total Payable</span>
+                        <span id="total-payable">$0.00</span>
+                    </div>
+                    <div class="info-item">
+                        <span>Due Date</span>
+                        <span id="due-date">-</span>
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary" onclick="applyForLoan()">Apply for Loan</button>
+            </div>
+            
+            <h3 class="section-title">Active Loans</h3>
+            <div id="active-loans">
+                <!-- Active loans will be loaded here -->
+            </div>
+        </div>
+        
+        <!-- 20. Lottery Screen -->
+        <div id="lottery-screen" class="screen">
+            <div class="page-header">
+                <i class="fa-solid fa-arrow-left back-btn" onclick="showScreen('home-screen')"></i>
+                <h2 class="page-title">Lottery</h2>
+                <div style="width: 20px;"></div>
+            </div>
+            
+            <div id="lottery-container">
+                <!-- Lottery items will be loaded from Firebase -->
+            </div>
+
+            <h3 class="section-title">My Lottery Tickets</h3>
+            <div class="lottery-history-list" id="lottery-history-list">
+                <p class="text-center">You have not purchased any tickets.</p>
+            </div>
+        </div>
+        
+        <!-- 21. Send Money Screen -->
+        <div id="send-money-screen" class="screen">
+            <div class="page-header">
+                <i class="fa-solid fa-arrow-left back-btn" onclick="showScreen('home-screen')"></i>
+                <h2 class="page-title">Send Money</h2>
+                <div style="width: 20px;"></div>
+            </div>
+            
+            <div class="user-search">
+                <div class="form-group">
+                    <label for="receiver-search">Find User by Email</label>
+                    <input type="text" id="receiver-search" class="form-control" placeholder="Enter user's email" oninput="searchUserByEmail(this.value)">
+                </div>
+            </div>
+            
+            <div id="receiver-info" style="display: none;">
+                <div class="card">
+                    <div class="info-item">
+                        <span>Receiver</span>
+                        <span id="receiver-name">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span>Email</span>
+                        <span id="receiver-email">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="send-amount">Amount to Send ($)</label>
+                <input type="number" id="send-amount" class="form-control" placeholder="Enter amount">
+            </div>
+            
+            <div class="form-group">
+                <label for="send-note">Note (Optional)</label>
+                <input type="text" id="send-note" class="form-control" placeholder="Add a note">
+            </div>
+            
+            <button class="btn btn-primary" id="send-money-btn" disabled onclick="confirmSendMoney()">Send Money</button>
+        </div>
+        
+        <!-- 22. P2P Screen -->
+        <div id="p2p-screen" class="screen">
+            <div class="p2p-tabs">
+                <div class="p2p-tab-buttons">
+                    <div class="p2p-tab active" id="p2p-buy-tab" onclick="switchP2PTab('buy')">Buy</div>
+                    <div class="p2p-tab" id="p2p-sell-tab" onclick="switchP2PTab('sell')">Sell</div>
+                </div>
+                <div class="p2p-dropdown">
+                    <button class="p2p-dropdown-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                    <div class="p2p-dropdown-content">
+                        <a href="#" onclick="showP2POfferForm('buy')">Create Buy Offer</a>
+                        <a href="#" onclick="showP2POfferForm('sell')">Create Sell Offer</a>
+                        <a href="#" onclick="showMyP2POffers()">My Offers</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="p2p-offers-container">
+                <!-- P2P offers will be loaded here -->
+            </div>
+        </div>
+        
+        <!-- 23. Gift Card Screen -->
+        <div id="gift-card-screen" class="screen">
+            <div class="page-header">
+                <i class="fa-solid fa-arrow-left back-btn" onclick="showScreen('home-screen')"></i>
+                <h2 class="page-title">Gift Cards</h2>
+                <div style="width: 20px;"></div>
+            </div>
+            
+            <div class="text-center">
+                <button class="btn btn-primary" onclick="showCreateGiftCard()">Create Gift Card</button>
+                <button class="btn btn-secondary mt-2" onclick="showRedeemGiftCard()">Redeem Gift Card</button>
+            </div>
+            
+            <div id="create-gift-card" style="display: none;" class="card mt-3">
+                <h3 class="section-title">Create New Gift Card</h3>
+                <div class="form-group">
+                    <label for="gift-amount">Amount ($)</label>
+                    <input type="number" id="gift-amount" class="form-control" placeholder="Enter amount">
+                </div>
+                
+                <div class="form-group">
+                    <label for="gift-occasion">Occasion</label>
+                    <select id="gift-occasion" class="form-control">
+                        <option value="General">General Gift</option>
+                        <option value="Birthday">🎂 Birthday</option>
+                        <option value="Eid Mubarak">🌙 Eid Mubarak</option>
+                        <option value="Wedding">💍 Wedding</option>
+                        <option value="Anniversary">🎉 Anniversary</option>
+                        <option value="Thank You">🙏 Thank You</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="gift-message">Message (Optional)</label>
+                    <textarea id="gift-message" class="form-control" placeholder="Add a message" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="gift-usage-limit">Usage Limit</label>
+                     <input type="number" id="gift-usage-limit" class="form-control" placeholder="How many users can redeem?" value="1">
+                </div>
+                
+                <button class="btn btn-primary" onclick="createGiftCard()">Create Gift Card</button>
+                <button class="btn btn-secondary mt-2" onclick="cancelCreateGiftCard()">Cancel</button>
+            </div>
+            
+            <div id="redeem-gift-card" style="display: none;" class="card mt-3">
+                 <h3 class="section-title">Redeem a Gift Card</h3>
+                <div class="form-group">
+                    <label for="gift-code">Gift Card Code</label>
+                    <input type="text" id="gift-code" class="form-control" placeholder="Enter gift card code">
+                </div>
+                
+                <button class="btn btn-primary" onclick="redeemGiftCard()">Redeem</button>
+                <button class="btn btn-secondary mt-2" onclick="cancelRedeemGiftCard()">Cancel</button>
+            </div>
+            
+            <h3 class="section-title mt-4">My Created Gift Cards</h3>
+            <div id="gift-cards-list">
+                <!-- Gift cards will be loaded here -->
+            </div>
+        </div>
+        
+        <!-- 24. KYC Screen -->
+        <div id="kyc-screen" class="screen">
+            <div class="page-header">
+                <i class="fa-solid fa-arrow-left back-btn" onclick="showScreen('profile-screen')"></i>
+                <h2 class="page-title">KYC Verification</h2>
+                <div style="width: 20px;"></div>
+            </div>
+            
+            <div id="kyc-status-message">
+                <!-- KYC status will be shown here -->
+            </div>
+            
+            <div id="kyc-form">
+                <div class="form-group">
+                    <label for="kyc-fullname">Full Name (as per ID)</label>
+                    <input type="text" id="kyc-fullname" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="kyc-dob">Date of Birth</label>
+                    <input type="date" id="kyc-dob" class="form-control">
+                </div>
+                 <div class="form-group">
+                    <label for="kyc-address-village">Village/Street</label>
+                    <input type="text" id="kyc-address-village" class="form-control" placeholder="Enter Village/Street">
+                </div>
+                <div class="form-group">
+                    <label for="kyc-address-post">Post Office</label>
+                    <input type="text" id="kyc-address-post" class="form-control" placeholder="Enter Post Office">
+                </div>
+                <div class="form-group">
+                    <label for="kyc-address-thana">Thana/Upazila</label>
+                    <input type="text" id="kyc-address-thana" class="form-control" placeholder="Enter Thana/Upazila">
+                </div>
+                 <div class="form-group">
+                    <label for="kyc-address-district">District</label>
+                    <input type="text" id="kyc-address-district" class="form-control" placeholder="Enter District">
+                </div>
+
+                <div id="kyc-document-uploads">
+                    <div class="form-group">
+                        <label for="kyc-id-type">ID Type</label>
+                        <select id="kyc-id-type" class="form-control">
+                            <option value="nid">National ID</option>
+                            <option value="passport">Passport</option>
+                            <option value="driving_license">Driving License</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="kyc-id-number">ID Number</label>
+                        <input type="text" id="kyc-id-number" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="kyc-id-front">ID Front Photo</label>
+                        <input type="file" id="kyc-id-front" class="form-control" accept="image/*">
+                    </div>
+                    <div class="form-group">
+                        <label for="kyc-id-back">ID Back Photo</label>
+                        <input type="file" id="kyc-id-back" class="form-control" accept="image/*">
+                    </div>
+                    <div class="form-group">
+                        <label for="kyc-selfie">Selfie with ID</label>
+                        <input type="file" id="kyc-selfie" class="form-control" accept="image/*">
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary" onclick="submitKYC()">Submit for Verification</button>
+            </div>
+             <div id="kyc-details-locked" style="display:none;" class="card">
+                <!-- Locked KYC details will be shown here -->
+            </div>
+        </div>
+        
+        <!-- Navigation Bar -->
+        <div class="nav-bar" id="nav-bar" style="display: none;">
+            <div class="nav-item active" data-screen="home-screen">
+                <i class="fa-solid fa-house"></i>
+                <span>Home</span>
+            </div>
+            <div class="nav-item" data-screen="wallet-screen">
+                <i class="fa-solid fa-wallet"></i>
+                <span>Wallet</span>
+            </div>
+            <div class="nav-item" data-screen="history-screen">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>History</span>
+            </div>
+             <div class="nav-item" data-screen="withdraw-screen">
+                <i class="fa-solid fa-money-bill-transfer"></i>
+                <span>Withdraw</span>
+            </div>
+            <div class="nav-item" data-screen="support-screen">
+                <i class="fa-solid fa-headset"></i>
+                <span>Support</span>
+            </div>
+        </div>
+        
+        <!-- Popup Overlay -->
+        <div class="popup-overlay" id="popup-overlay">
+            <div class="popup-content">
+                <h3 id="popup-title">Title</h3>
+                <p id="popup-message">Message goes here</p>
+                <div class="popup-buttons" id="popup-buttons">
+                    <button class="btn btn-primary" onclick="closePopup()">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Configuration -->
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyD2AiOk_fifsbafebm1KXN3at31oqIBudI",
+            authDomain: "safeinvestmax-a9023.firebaseapp.com",
+            databaseURL: "https://safeinvestmax-a9023-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "safeinvestmax-a9023",
+            storageBucket: "safeinvestmax-a9023.firebasestorage.app",
+            messagingSenderId: "571707257227",
+            appId: "1:571707257227:web:1bdf4ed487127978acff8e",
+            measurementId: "G-T17XRKVH1B"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+        const analytics = firebase.analytics();
+    </script>
+
+    <!-- App Script -->
+    <script>
+        // Global variables
+        let currentUser = null;
+        let userData = {};
+        let selectedPaymentMethod = null;
+        let selectedWithdrawAdmin = null;
+        let selectedProfileImage = null;
+        let exchangeRates = {};
+        let appSettings = {};
+        let previousScreen = 'splash-screen';
+        let bannerInterval = null;
+        
+        // DOM Ready
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthState();
+            setupEventListeners();
+        });
+        
+        // Check authentication state
+        function checkAuthState() {
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    currentUser = user;
+                    loadInitialData();
+                } else {
+                    currentUser = null;
+                    userData = {};
+                    showScreen('login-screen');
+                }
+            });
+        }
+
+        // Load initial app data (settings, user data, etc.)
+        function loadInitialData() {
+            const settingsRef = database.ref('settings');
+            const userRef = database.ref('users/' + currentUser.uid);
+
+            Promise.all([settingsRef.once('value'), userRef.once('value')])
+            .then((snapshots) => {
+                appSettings = snapshots[0].val() || {};
+                userData = snapshots[1].val() || {};
+                
+                updateUIWithUserData();
+                showScreen('home-screen');
+                loadBanners();
+                loadProducts();
+
+            }).catch(error => {
+                console.error("Error loading initial data:", error);
+                showPopup('Error', 'Could not load app data. Please try again.');
+            });
+        }
+        
+        // Setup event listeners
+        function setupEventListeners() {
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('register-form').addEventListener('submit', handleRegistration);
+            document.getElementById('forgot-password-form').addEventListener('submit', handlePasswordReset);
+            
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const screenId = item.getAttribute('data-screen');
+                    if (appSettings.disabledFeatures && appSettings.disabledFeatures[screenId]) {
+                        showPopup('Notice', 'This feature is temporarily unavailable. Please try again later.');
+                    } else {
+                        showScreen(screenId);
+                    }
+                });
+            });
+        }
+        
+        // Show a specific screen
+        function showScreen(screenId, backScreen = null) {
+            const previousActiveScreen = document.querySelector('.screen.active');
+            if (previousActiveScreen) {
+                if (previousActiveScreen.id !== screenId) {
+                    previousScreen = previousActiveScreen.id;
+                }
+                previousActiveScreen.classList.remove('active');
+            }
+            
+            const newScreen = document.getElementById(screenId);
+            newScreen.classList.add('active');
+            if (backScreen) {
+                newScreen.dataset.back = backScreen;
+            }
+
+            const navBar = document.getElementById('nav-bar');
+            if (newScreen.classList.contains('no-nav')) {
+                navBar.style.display = 'none';
+            } else {
+                navBar.style.display = 'flex';
+                updateNavHighlighting(screenId);
+            }
+            
+            loadScreenData(screenId);
+        }
+        
+        // Go back to the previous screen
+        function goBack() {
+             const currentActiveScreen = document.querySelector('.screen.active');
+             const backScreenId = currentActiveScreen.dataset.back || previousScreen || 'home-screen';
+             showScreen(backScreenId);
+        }
+        
+        // Load data specific to the screen being displayed
+        function loadScreenData(screenId) {
+             if (!currentUser) return;
+            switch(screenId) {
+                case 'home-screen':
+                    updateUIWithUserData();
+                    break;
+                case 'wallet-screen':
+                    loadWalletData();
+                    break;
+                case 'history-screen':
+                    loadTransactionHistory('all');
+                    break;
+                case 'referral-screen':
+                    loadReferralData();
+                    break;
+                case 'savings-screen':
+                    loadSavingsPlans();
+                    break;
+                case 'loan-screen':
+                    loadLoanData();
+                    break;
+                case 'lottery-screen':
+                    loadLotteryData();
+                    break;
+                case 'gift-card-screen':
+                    loadGiftCards();
+                    break;
+                case 'kyc-screen':
+                    loadKYCStatus();
+                    break;
+                case 'deposit-screen':
+                    loadDepositMethods();
+                    break;
+                case 'withdraw-screen':
+                     loadWithdrawalMethods();
+                    break;
+                case 'p2p-screen':
+                    switchP2PTab('buy');
+                    break;
+                case 'profile-screen':
+                    updateUIWithUserData();
+                    break;
+                case 'exchange-screen':
+                    loadExchangeRates();
+                    break;
+            }
+        }
+
+        function updateNavHighlighting(screenId) {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.screen === screenId);
+            });
+        }
+        
+        // --- Authentication ---
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            auth.signInWithEmailAndPassword(email, password)
+            .catch((error) => {
+                let message = "An error occurred. Please try again.";
+                switch (error.code) {
+                    case 'auth/user-not-found':
+                    case 'auth/wrong-password':
+                    case 'auth/invalid-credential':
+                        message = "Invalid email or password.";
+                        break;
+                    case 'auth/invalid-email':
+                        message = "Please enter a valid email address.";
+                        break;
+                }
+                showPopup('Login Failed', message);
+            });
+        }
+
+        function handleRegistration(e) {
+            e.preventDefault();
+            const fullName = document.getElementById('reg-fullname').value;
+            const mobile = document.getElementById('reg-mobile').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            const confirmPassword = document.getElementById('reg-confirm-password').value;
+            
+            if (password !== confirmPassword) {
+                showPopup('Error', 'Passwords do not match.');
+                return;
+            }
+
+            auth.createUserWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+                const newUser = userCredential.user;
+                const newUser_Data = {
+                    uid: newUser.uid,
+                    fullName: fullName,
+                    mobile: mobile,
+                    email: email,
+                    balance: 0,
+                    lockedBalance: 0,
+                    referralCode: generateReferralCode(),
+                    joinDate: new Date().toISOString(),
+                    kycStatus: 'unverified'
+                };
+                return database.ref('users/' + newUser.uid).set(newUser_Data);
+            })
+            .then(() => {
+                showPopup('Success', 'Registration successful!');
+            })
+            .catch((error) => {
+                let message = "An error occurred. Please try again.";
+                if (error.code === 'auth/email-already-in-use') {
+                    message = "An account with this email address already exists.";
+                } else if (error.code === 'auth/weak-password') {
+                    message = "The password is too weak. Please use at least 6 characters.";
+                }
+                showPopup('Registration Failed', message);
+            });
+        }
+
+        function handlePasswordReset(e) {
+            e.preventDefault();
+            const email = document.getElementById('forgot-email').value;
+            
+            auth.sendPasswordResetEmail(email)
+            .then(() => {
+                showPopup('Success', 'A password reset link has been sent to your email.');
+                showScreen('login-screen');
+            })
+            .catch((error) => {
+                 let message = "An error occurred. Please try again.";
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
+                    message = "No account found with this email address.";
+                }
+                showPopup('Error', message);
+            });
+        }
+
+        function logout() {
+            auth.signOut();
+        }
+
+        // --- UI Updates ---
+        function updateUIWithUserData() {
+            if (!userData || !currentUser) return;
+            document.getElementById('profile-name').textContent = userData.fullName || 'User';
+            document.getElementById('profile-email').textContent = userData.email || 'No email';
+            document.getElementById('profile-mobile').textContent = userData.mobile || 'No mobile';
+            document.getElementById('referral-code').textContent = userData.referralCode || 'N/A';
+            document.getElementById('home-profile-pic').src = userData.profileImage || 'https://i.pravatar.cc/150';
+            document.getElementById('profile-pic').src = userData.profileImage || 'https://i.pravatar.cc/150';
+            
+            const totalBalance = (userData.balance || 0).toFixed(2);
+            document.getElementById('home-balance').textContent = `$${totalBalance}`;
+
+            const kycStatus = userData.kycStatus || 'unverified';
+            const kycBadge = document.getElementById('kyc-status');
+            kycBadge.textContent = kycStatus.charAt(0).toUpperCase() + kycStatus.slice(1);
+            kycBadge.className = 'kyc-status kyc-' + kycStatus;
+        }
+
+        // --- Home Screen ---
+        function loadBanners() {
+            database.ref('banners').orderByChild('active').equalTo(true).once('value').then(snapshot => {
+                const slidesContainer = document.getElementById('slides-container');
+                slidesContainer.innerHTML = '';
+                
+                if (snapshot.exists()) {
+                    const banners = [];
+                    snapshot.forEach(child => {
+                        banners.push(child.val());
+                    });
+                    
+                    banners.forEach(banner => {
+                        const slide = document.createElement('div');
+                        slide.className = 'slide';
+                        slide.innerHTML = `<img src="${banner.imageUrl}" alt="${banner.title || 'Banner'}">`;
+                        slidesContainer.appendChild(slide);
+                    });
+                    
+                    // Start banner rotation
+                    startBannerRotation(banners.length);
+                } else {
+                    slidesContainer.innerHTML = '<div class="slide"><img src="https://via.placeholder.com/400x150?text=No+Banners" alt="No banners"></div>';
+                }
+            });
+        }
+        
+        function startBannerRotation(bannerCount) {
+            if (bannerCount <= 1) return;
+            
+            // Clear any existing interval
+            if (bannerInterval) clearInterval(bannerInterval);
+            
+            let currentSlide = 0;
+            const slidesContainer = document.getElementById('slides-container');
+            
+            bannerInterval = setInterval(() => {
+                currentSlide = (currentSlide + 1) % bannerCount;
+                slidesContainer.style.transform = `translateX(-${currentSlide * 100}%)`;
+            }, 7000); // 7 seconds
+        }
+        
+        function loadProducts() {
+            database.ref('products').once('value').then(snapshot => {
+                const products = snapshot.val();
+                const productList = document.getElementById('product-list');
+                productList.innerHTML = '';
+                if (products) {
+                    Object.entries(products).forEach(([key, product]) => {
+                        if (product.active) {
+                            const productCard = document.createElement('div');
+                            productCard.className = 'product-card';
+                            productCard.innerHTML = `
+                                <div class="buy-product-icon" onclick="confirmPurchase('${key}', '${product.name}', ${product.price})"><i class="fa-solid fa-plus"></i></div>
+                                <img src="${product.imageUrl || 'https://via.placeholder.com/200x120?text=Product'}" alt="${product.name}">
+                                <div class="product-info">
+                                    <h4>${product.name}</h4>
+                                    <div class="product-price">$${product.price.toFixed(2)}</div>
+                                </div>
+                            `;
+                            productList.appendChild(productCard);
+                        }
+                    });
+                }
+            });
+        }
+        
+        function confirmPurchase(productId, productName, productPrice) {
+            showConfirmationPopup(
+                'Confirm Purchase', 
+                `Are you sure you want to buy "${productName}" for $${productPrice.toFixed(2)}?`, 
+                () => purchaseProduct(productId, productPrice)
+            );
+        }
+
+        function purchaseProduct(productId, productPrice) {
+             const currentBalance = userData.balance || 0;
+            if (currentBalance < productPrice) {
+                showPopup('Insufficient Funds', 'You do not have enough balance to purchase this product.');
+                return;
+            }
+            
+            const newBalance = currentBalance - productPrice;
+            const userRef = database.ref('users/' + currentUser.uid);
+            
+            userRef.update({ balance: newBalance })
+            .then(() => {
+                const purchaseData = {
+                    productId: productId,
+                    purchaseDate: new Date().toISOString(),
+                    price: productPrice
+                };
+                return userRef.child('products').push(purchaseData);
+            })
+            .then(() => {
+                showPopup('Success', 'Product purchased successfully!');
+                userData.balance = newBalance;
+                updateUIWithUserData();
+            })
+            .catch(error => {
+                showPopup('Error', 'Failed to purchase product. Please try again.');
+                console.error("Purchase error: ", error);
+            });
+        }
+
+
+        // --- Wallet Screen ---
+        function loadWalletData() {
+            const totalBalance = (userData.balance || 0) + (userData.lockedBalance || 0);
+            document.getElementById('wallet-balance').textContent = `$${totalBalance.toFixed(2)}`;
+            document.getElementById('available-balance').textContent = `$${(userData.balance || 0).toFixed(2)}`;
+            document.getElementById('locked-balance').textContent = `$${(userData.lockedBalance || 0).toFixed(2)}`;
+            
+            const productsContainer = document.getElementById('wallet-products');
+            productsContainer.innerHTML = '<p class="text-center">No products purchased yet.</p>';
+            if (userData.products) {
+                 // Logic to display purchased products
+            }
+
+            const coinsContainer = document.getElementById('wallet-coins');
+            coinsContainer.innerHTML = '<p class="text-center">No coins held yet.</p>';
+             if (userData.coins) {
+                 // Logic to display held coins
+            }
+        }
+        
+        // --- Deposit/Withdrawal ---
+        function loadDepositMethods() {
+            database.ref('depositMethods').orderByChild('active').equalTo(true).once('value').then(snapshot => {
+                const methodsContainer = document.getElementById('payment-methods');
+                methodsContainer.innerHTML = '';
+                if(snapshot.exists()){
+                    snapshot.forEach(childSnapshot => {
+                        const method = childSnapshot.val();
+                        const methodKey = childSnapshot.key;
+                        const card = document.createElement('div');
+                        card.className = 'method-card';
+                        card.innerHTML = `
+                            <img src="${method.iconUrl}" alt="${method.name}">
+                            <span>${method.name}</span>
+                        `;
+                        card.onclick = () => selectDepositMethod(methodKey, method);
+                        methodsContainer.appendChild(card);
+                    });
+                } else {
+                     methodsContainer.innerHTML = '<p class="text-center">No deposit methods are available right now.</p>';
+                }
+            });
+        }
+        
+        function selectDepositMethod(key, method) {
+            selectedPaymentMethod = { key, ...method };
+            document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+
+            document.getElementById('deposit-details-section').style.display = 'block';
+            
+            const detailsDisplay = document.getElementById('method-details');
+            detailsDisplay.innerHTML = `
+                <h4>Payment Details</h4>
+                <p><strong>Method:</strong> ${method.name}</p>
+                <p><strong>Account:</strong> ${method.accountIdentifier}</p>
+                <p><strong>Note:</strong> ${method.note || 'N/A'}</p>
+            `;
+
+            const inputFieldsContainer = document.getElementById('deposit-input-fields');
+            inputFieldsContainer.innerHTML = '';
+            method.requiredFields.forEach(field => {
+                inputFieldsContainer.innerHTML += `
+                    <div class="form-group">
+                        <label for="deposit-${field.name}">${field.label}</label>
+                        <input type="${field.type || 'text'}" id="deposit-${field.name}" class="form-control" placeholder="${field.placeholder}">
+                    </div>
+                `;
+            });
+        }
+        
+        function processDeposit() {
+            const amount = parseFloat(document.getElementById('deposit-amount').value);
+            if (!amount || amount <= 0) {
+                showPopup('Error', 'Please enter a valid amount.');
+                return;
+            }
+            
+            if (!selectedPaymentMethod) {
+                showPopup('Error', 'Please select a payment method.');
+                return;
+            }
+            
+            // Collect additional fields
+            const depositData = {
+                amount: amount,
+                method: selectedPaymentMethod.name,
+                status: 'pending',
+                timestamp: new Date().toISOString(),
+                userId: currentUser.uid
+            };
+            
+            selectedPaymentMethod.requiredFields.forEach(field => {
+                const value = document.getElementById(`deposit-${field.name}`).value;
+                depositData[field.name] = value;
+            });
+            
+            // Save deposit request
+            database.ref('depositRequests').push(depositData)
+            .then(() => {
+                showPopup('Success', 'Your deposit request has been submitted and is pending approval.');
+                document.getElementById('deposit-amount').value = '';
+                document.getElementById('deposit-details-section').style.display = 'none';
+                document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
+                selectedPaymentMethod = null;
+            })
+            .catch(error => {
+                showPopup('Error', 'Failed to submit deposit request. Please try again.');
+                console.error("Deposit error:", error);
+            });
+        }
+
+         function loadWithdrawalMethods() {
+            database.ref('withdrawalMethods').orderByChild('active').equalTo(true).once('value').then(snapshot => {
+                const listContainer = document.getElementById('withdraw-admin-list');
+                listContainer.innerHTML = '';
+                if (snapshot.exists()) {
+                    snapshot.forEach(childSnapshot => {
+                        const method = childSnapshot.val();
+                        const methodKey = childSnapshot.key;
+                        const item = document.createElement('div');
+                        item.className = 'admin-item';
+                        item.innerHTML = `
+                             <img src="${method.iconUrl}" alt="${method.name}" class="admin-avatar">
+                             <div class="admin-details">
+                                <div class="admin-name">${method.name}</div>
+                             </div>
+                        `;
+                        item.onclick = () => selectWithdrawMethod(methodKey, method);
+                        listContainer.appendChild(item);
+                    });
+                } else {
+                    listContainer.innerHTML = '<p class="text-center">No withdrawal methods are available right now.</p>';
+                }
+            });
+        }
+
+        function selectWithdrawMethod(key, method) {
+             selectedWithdrawAdmin = { key, ...method };
+            document.querySelectorAll('.admin-item').forEach(c => c.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+
+            document.getElementById('withdrawal-details-section').style.display = 'block';
+            const inputFieldsContainer = document.getElementById('withdraw-input-fields');
+            inputFieldsContainer.innerHTML = '';
+             method.requiredFields.forEach(field => {
+                inputFieldsContainer.innerHTML += `
+                    <div class="form-group">
+                        <label for="withdraw-${field.name}">${field.label}</label>
+                        <input type="${field.type || 'text'}" id="withdraw-${field.name}" class="form-control" placeholder="${field.placeholder}">
+                    </div>
+                `;
+            });
+        }
+
+        function processWithdrawal() {
+            const amount = parseFloat(document.getElementById('withdraw-amount').value);
+            if (!amount || amount <= 0) {
+                showPopup('Error', 'Please enter a valid amount.');
+                return;
+            }
+            
+            if (amount < 5) {
+                showPopup('Error', 'Minimum withdrawal amount is $5.');
+                return;
+            }
+            
+            if ((userData.balance || 0) < amount) {
+                showPopup('Error', 'Insufficient balance.');
+                return;
+            }
+            
+            if (!selectedWithdrawAdmin) {
+                showPopup('Error', 'Please select a withdrawal method.');
+                return;
+            }
+            
+            // Collect additional fields
+            const withdrawalData = {
+                amount: amount,
+                method: selectedWithdrawAdmin.name,
+                status: 'pending',
+                timestamp: new Date().toISOString(),
+                userId: currentUser.uid
+            };
+            
+            selectedWithdrawAdmin.requiredFields.forEach(field => {
+                const value = document.getElementById(`withdraw-${field.name}`).value;
+                withdrawalData[field.name] = value;
+            });
+            
+            // Update user balance and save withdrawal request
+            const newBalance = (userData.balance || 0) - amount;
+            
+            const updates = {};
+            updates[`/users/${currentUser.uid}/balance`] = newBalance;
+            updates[`/withdrawalRequests/${Date.now()}`] = withdrawalData;
+            
+            database.ref().update(updates)
+            .then(() => {
+                showPopup('Success', 'Your withdrawal request has been submitted and is being processed.');
+                document.getElementById('withdraw-amount').value = '';
+                document.getElementById('withdrawal-details-section').style.display = 'none';
+                document.querySelectorAll('.admin-item').forEach(c => c.classList.remove('selected'));
+                selectedWithdrawAdmin = null;
+                userData.balance = newBalance;
+                updateUIWithUserData();
+            })
+            .catch(error => {
+                showPopup('Error', 'Failed to process withdrawal. Please try again.');
+                console.error("Withdrawal error:", error);
+            });
+        }
+        
+        // --- Send Money ---
+        let foundUser = null;
+        function searchUserByEmail(email) {
+            const receiverInfo = document.getElementById('receiver-info');
+            const receiverName = document.getElementById('receiver-name');
+            const receiverEmail = document.getElementById('receiver-email');
+            const sendBtn = document.getElementById('send-money-btn');
+            
+            if (email.length < 5 || !email.includes('@')) {
+                 receiverInfo.style.display = 'none';
+                 sendBtn.disabled = true;
+                 foundUser = null;
+                 return;
+            }
+
+            database.ref('users').orderByChild('email').equalTo(email).once('value', snapshot => {
+                if (snapshot.exists()) {
+                    const users = snapshot.val();
+                    const userId = Object.keys(users)[0];
+                    if (userId === currentUser.uid) {
+                        receiverName.textContent = "Cannot send to yourself";
+                        receiverEmail.textContent = email;
+                        receiverInfo.style.display = 'block';
+                        sendBtn.disabled = true;
+                        foundUser = null;
+                        return;
+                    }
+                    foundUser = { id: userId, ...users[userId] };
+                    receiverName.textContent = foundUser.fullName;
+                    receiverEmail.textContent = foundUser.email;
+                    receiverInfo.style.display = 'block';
+                    sendBtn.disabled = false;
+                } else {
+                    receiverName.textContent = "User not found";
+                    receiverEmail.textContent = email;
+                    receiverInfo.style.display = 'block';
+                    sendBtn.disabled = true;
+                    foundUser = null;
+                }
+            });
+        }
+
+        function confirmSendMoney() {
+            if (!foundUser) {
+                showPopup('Error', 'Please select a valid user to send money to.');
+                return;
+            }
+            const amount = parseFloat(document.getElementById('send-amount').value);
+            if (isNaN(amount) || amount <= 0) {
+                showPopup('Error', 'Please enter a valid amount.');
+                return;
+            }
+            if ((userData.balance || 0) < amount) {
+                showPopup('Error', 'Insufficient balance.');
+                return;
+            }
+            
+            showConfirmationPopup(
+                'Confirm Transfer',
+                `Are you sure you want to send $${amount.toFixed(2)} to ${foundUser.fullName}?`,
+                () => executeSendMoney(amount)
+            );
+        }
+
+        function executeSendMoney(amount) {
+            const note = document.getElementById('send-note').value;
+            const historyRef = database.ref('transactions');
+
+            const senderNewBalance = (userData.balance || 0) - amount;
+            const receiverNewBalance = (foundUser.balance || 0) + amount;
+
+            const transactionId = historyRef.push().key;
+
+            const updates = {};
+            updates[`/users/${currentUser.uid}/balance`] = senderNewBalance;
+            updates[`/users/${foundUser.id}/balance`] = receiverNewBalance;
+            updates[`/transactions/${transactionId}`] = {
+                from: currentUser.uid,
+                fromEmail: userData.email,
+                to: foundUser.id,
+                toEmail: foundUser.email,
+                amount: amount,
+                note: note,
+                timestamp: new Date().toISOString(),
+                type: 'transfer'
+            };
+
+            database.ref().update(updates)
+            .then(() => {
+                showPopup('Success', `Successfully sent $${amount.toFixed(2)} to ${foundUser.fullName}.`);
+                 document.getElementById('receiver-search').value = '';
+                 document.getElementById('receiver-info').style.display = 'none';
+                 document.getElementById('send-amount').value = '';
+                 document.getElementById('send-note').value = '';
+                 document.getElementById('send-money-btn').disabled = true;
+                 foundUser = null;
+                 userData.balance = senderNewBalance;
+                 updateUIWithUserData();
+            })
+            .catch(error => {
+                showPopup('Error', 'Transfer failed. Please try again.');
+                console.error("Send money error:", error);
+            });
+        }
+
+        // --- Gift Cards ---
+        function createGiftCard() {
+            const amount = parseFloat(document.getElementById('gift-amount').value);
+            const usageLimit = parseInt(document.getElementById('gift-usage-limit').value);
+            const occasion = document.getElementById('gift-occasion').value;
+
+            if (isNaN(amount) || amount <= 0) {
+                showPopup('Error', 'Please enter a valid amount.'); return;
+            }
+             if (isNaN(usageLimit) || usageLimit <= 0) {
+                showPopup('Error', 'Please enter a valid usage limit.'); return;
+            }
+            if ((userData.balance || 0) < amount) {
+                showPopup('Error', 'Insufficient balance to create this gift card.'); return;
+            }
+            
+            const newBalance = (userData.balance || 0) - amount;
+            const giftCardCode = 'GIFT-' + generateReferralCode();
+            const giftCardData = {
+                code: giftCardCode,
+                amount: amount,
+                occasion: occasion,
+                message: document.getElementById('gift-message').value,
+                createdBy: currentUser.uid,
+                createdAt: new Date().toISOString(),
+                usageLimit: usageLimit,
+                redeemedCount: 0,
+                status: 'active'
+            };
+
+            const updates = {};
+            updates[`/users/${currentUser.uid}/balance`] = newBalance;
+            updates[`/giftCards/${giftCardCode}`] = giftCardData;
+            updates[`/users/${currentUser.uid}/createdGiftCards/${giftCardCode}`] = true;
+
+            database.ref().update(updates)
+            .then(() => {
+                showPopup('Success', `Gift card created! Code: ${giftCardCode}`);
+                userData.balance = newBalance;
+                updateUIWithUserData();
+                loadGiftCards();
+                cancelCreateGiftCard();
+            })
+            .catch(error => {
+                showPopup('Error', 'Failed to create gift card.');
+            });
+        }
+        
+        function loadGiftCards() {
+            const listContainer = document.getElementById('gift-cards-list');
+            listContainer.innerHTML = '';
+            const userGiftCardRef = database.ref(`users/${currentUser.uid}/createdGiftCards`);
+            
+            userGiftCardRef.once('value').then(snapshot => {
+                if (!snapshot.exists()) {
+                    listContainer.innerHTML = '<p class="text-center">You have not created any gift cards.</p>';
+                    return;
+                }
+                snapshot.forEach(childSnapshot => {
+                    const cardCode = childSnapshot.key;
+                    database.ref(`giftCards/${cardCode}`).once('value').then(cardSnap => {
+                        const cardData = cardSnap.val();
+                        if(!cardData) return;
+                        const isComplete = cardData.redeemedCount >= cardData.usageLimit;
+                        const cardElement = document.createElement('div');
+                        cardElement.className = 'gift-card';
+                        cardElement.innerHTML = `
+                            ${cardData.occasion ? `<div class="gift-card-occasion">${cardData.occasion}</div>` : ''}
+                            <div class="gift-card-amount">$${cardData.amount.toFixed(2)}</div>
+                            <div class="gift-card-code">${cardData.code}</div>
+                            <p class="gift-card-message">"${cardData.message || 'No message'}"</p>
+                            <div class="gift-card-status ${isComplete ? 'complete' : ''}">
+                                ${isComplete ? 'Completed' : 'Redeemed: ' + cardData.redeemedCount + ' / ' + cardData.usageLimit}
+                            </div>
+                            <div class="gift-card-date">Created: ${new Date(cardData.createdAt).toLocaleDateString()}</div>
+                        `;
+                        listContainer.appendChild(cardElement);
+                    });
+                });
+            });
+        }
+        
+        // --- KYC ---
+        function loadKYCStatus() {
+            const kycStatus = userData.kycStatus || 'unverified';
+            const kycData = userData.kycData;
+
+            const kycStatusMessage = document.getElementById('kyc-status-message');
+            const kycForm = document.getElementById('kyc-form');
+            const kycDetailsLocked = document.getElementById('kyc-details-locked');
+            
+            kycStatusMessage.innerHTML = '';
+            kycForm.style.display = 'none';
+            kycDetailsLocked.style.display = 'none';
+
+            if (kycStatus === 'verified') {
+                kycStatusMessage.innerHTML = `<div class="card text-center"><h3 style="color: var(--success-color);">KYC Verified</h3><p>Your account is fully verified.</p></div>`;
+                kycDetailsLocked.style.display = 'block';
+                if (kycData) {
+                    kycDetailsLocked.innerHTML = `
+                        <h4>Your Verified Information</h4>
+                        <div class="info-item"><span>Full Name</span><span>${kycData.fullName}</span></div>
+                        <div class="info-item"><span>Date of Birth</span><span>${kycData.dob}</span></div>
+                        <div class="info-item"><span>Address</span><span>${kycData.village}, ${kycData.post}, ${kycData.thana}, ${kycData.district}</span></div>
+                        ${kycData.idType ? `<div class="info-item"><span>ID Type</span><span>${kycData.idType}</span></div>` : ''}
+                        ${kycData.idNumber ? `<div class="info-item"><span>ID Number</span><span>${kycData.idNumber}</span></div>` : ''}
+                    `;
+                }
+            } else if (kycStatus === 'pending') {
+                kycStatusMessage.innerHTML = `<div class="card text-center"><h3 style="color: var(--pending-color);">KYC Under Review</h3><p>Your documents are being reviewed.</p></div>`;
+            } else if (kycStatus === 'rejected') {
+                kycStatusMessage.innerHTML = `<div class="card text-center"><h3 style="color: var(--error-color);">KYC Rejected</h3><p>Your verification was rejected. Please resubmit.</p></div>`;
+                kycForm.style.display = 'block';
+            } else {
+                kycStatusMessage.innerHTML = `<div class="card text-center"><h3>Verify Your Identity</h3><p>Please submit your information for verification.</p></div>`;
+                kycForm.style.display = 'block';
+            }
+
+            document.getElementById('kyc-document-uploads').style.display = appSettings.kycRequiresDocuments ? 'block' : 'none';
+        }
+
+        function submitKYC() {
+             const kycData = {
+                fullName: document.getElementById('kyc-fullname').value,
+                dob: document.getElementById('kyc-dob').value,
+                village: document.getElementById('kyc-address-village').value,
+                post: document.getElementById('kyc-address-post').value,
+                thana: document.getElementById('kyc-address-thana').value,
+                district: document.getElementById('kyc-address-district').value,
+            };
+
+            if (!kycData.fullName || !kycData.dob || !kycData.village || !kycData.thana) {
+                 showPopup('Error', 'Please fill in all required fields.');
+                 return;
+            }
+            
+            if (appSettings.kycRequiresDocuments) {
+                 kycData.idType = document.getElementById('kyc-id-type').value;
+                 kycData.idNumber = document.getElementById('kyc-id-number').value;
+                 // In a real app, file upload logic is required here.
+            }
+
+            database.ref('users/' + currentUser.uid).update({
+                kycStatus: 'pending',
+                kycData: kycData
+            })
+            .then(() => {
+                showPopup('Success', 'Your KYC information has been submitted for review.');
+                userData.kycStatus = 'pending';
+                userData.kycData = kycData;
+                loadKYCStatus();
+            })
+            .catch(error => {
+                showPopup('Error', 'Failed to submit KYC information.');
+            });
+        }
+        
+        // --- Lottery ---
+        function loadLotteryData() {
+            const container = document.getElementById('lottery-container');
+            container.innerHTML = '';
+             database.ref('lotteries').orderByChild('active').equalTo(true).once('value').then(snapshot => {
+                 if (!snapshot.exists()) {
+                     container.innerHTML = '<p class="text-center">No active lotteries at the moment.</p>';
+                     return;
+                 }
+                 snapshot.forEach(child => {
+                     const lottery = child.val();
+                     const lotteryKey = child.key;
+                     const card = document.createElement('div');
+                     card.className = 'lottery-card';
+                     card.innerHTML = `
+                        ${lottery.imageUrl ? `<img src="${lottery.imageUrl}" class="lottery-card-image" alt="Lottery Image">` : ''}
+                        <h3 class="lottery-card-title">${lottery.name}</h3>
+                        <div class="lottery-prizes">
+                            ${(Array.isArray(lottery.prizes) ? lottery.prizes : []).map(p => `<div class="lottery-prize"><i class="fa-solid fa-trophy"></i> <span>${p.rank}: ${p.prize}</span></div>`).join('')}
+                        </div>
+                        <div class="lottery-draw-date">Draw on: ${new Date(lottery.drawDate).toLocaleString()}</div>
+                        <button class="btn btn-primary" onclick="buyLotteryTicket('${lotteryKey}', ${lottery.ticketPrice})">Buy Ticket ($${lottery.ticketPrice})</button>
+                     `;
+                     container.appendChild(card);
+                 });
+             });
+             loadMyLotteryTickets();
+        }
+
+        function buyLotteryTicket(lotteryKey, price) {
+            if ((userData.balance || 0) < price) {
+                showPopup('Error', 'Insufficient balance to buy a lottery ticket.');
+                return;
+            }
+            
+            const newBalance = (userData.balance || 0) - price;
+            const ticketNumber = `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+            
+            const ticketData = {
+                lotteryId: lotteryKey,
+                ticketNumber: ticketNumber,
+                purchaseDate: new Date().toISOString(),
+                price: price,
+                status: 'waiting',
+                userId: currentUser.uid
+            };
+            
+            const updates = {};
+            updates[`/users/${currentUser.uid}/balance`] = newBalance;
+            updates[`/lotteryTickets/${ticketNumber}`] = ticketData;
+            updates[`/users/${currentUser.uid}/lotteryTickets/${ticketNumber}`] = true;
+            
+            database.ref().update(updates)
+            .then(() => {
+                showPopup('Success', `You purchased a lottery ticket! Your ticket number is ${ticketNumber}.`);
+                userData.balance = newBalance;
+                updateUIWithUserData();
+                loadMyLotteryTickets();
+            })
+            .catch(error => {
+                showPopup('Error', 'Failed to purchase lottery ticket.');
+            });
+        }
+
+        function loadMyLotteryTickets() {
+            const list = document.getElementById('lottery-history-list');
+            list.innerHTML = '';
+            
+            database.ref('users/' + currentUser.uid + '/lotteryTickets').once('value').then(snapshot => {
+                if (!snapshot.exists()) {
+                    list.innerHTML = '<p class="text-center">You have not purchased any tickets.</p>';
+                    return;
+                }
+                
+                snapshot.forEach(child => {
+                    const ticketId = child.key;
+                    database.ref('lotteryTickets/' + ticketId).once('value').then(ticketSnap => {
+                        const ticket = ticketSnap.val();
+                        if (!ticket) return;
+                        
+                        const ticketCard = document.createElement('div');
+                        ticketCard.className = 'lottery-ticket-card';
+                        
+                        let statusBadge = '';
+                        switch(ticket.status) {
+                            case 'won': statusBadge = '<span style="color: var(--success-color);">WON</span>'; break;
+                            case 'lost': statusBadge = '<span style="color: var(--error-color);">LOST</span>'; break;
+                            case 'ended': statusBadge = '<span style="color: #777;">ENDED</span>'; break;
+                            default: statusBadge = '<span style="color: var(--pending-color);">WAITING</span>';
+                        }
+                        
+                        ticketCard.innerHTML = `
+                            <div class="ticket-info">
+                                <div>${ticket.ticketNumber}</div>
+                                <div class="ticket-user">Purchased: ${new Date(ticket.purchaseDate).toLocaleDateString()}</div>
+                            </div>
+                            <div>${statusBadge}</div>
+                        `;
+                        list.appendChild(ticketCard);
+                    });
+                });
+            });
+        }
+
+        // --- Loan ---
+        function loadLoanData() {
+            const isEligible = userData.activeSavings && Object.keys(userData.activeSavings).length > 0;
+            const eligibilityStatus = document.getElementById('loan-eligibility-status');
+            const loanForm = document.getElementById('loan-application-form');
+
+            if (isEligible) {
+                const maxLoan = (userData.savingsTotal || 0) * (appSettings.loanPercentage || 0.5);
+                eligibilityStatus.className = 'loan-status available';
+                eligibilityStatus.innerHTML = `<h3>Loan Available</h3><p>You are eligible for a loan up to $${maxLoan.toFixed(2)}.</p>`;
+                loanForm.style.display = 'block';
+
+                const durationSelect = document.getElementById('loan-duration');
+                durationSelect.innerHTML = '';
+                if(appSettings.loanDurations && Array.isArray(appSettings.loanDurations)){
+                    appSettings.loanDurations.forEach(d => {
+                        durationSelect.innerHTML += `<option value="${d.days}">${d.label}</option>`;
+                    });
+                }
+            } else {
+                eligibilityStatus.className = 'loan-status not-available';
+                eligibilityStatus.innerHTML = `<h3>Loan Not Available</h3><p>You need to have an active savings plan to be eligible.</p>`;
+                loanForm.style.display = 'none';
+            }
+        }
+        
+        // --- P2P ---
+        function switchP2PTab(tab) {
+             document.getElementById('p2p-buy-tab').classList.toggle('active', tab === 'buy');
+             document.getElementById('p2p-sell-tab').classList.toggle('active', tab === 'sell');
+             const container = document.getElementById('p2p-offers-container');
+             container.innerHTML = '<p class="text-center">Loading offers...</p>';
+             const offerType = (tab === 'buy') ? 'sell' : 'buy';
+             // P2P loading logic
+        }
+
+        // --- Exchange ---
+        function loadExchangeRates() {
+            database.ref('exchangeRates').once('value').then(snapshot => {
+                const rates = snapshot.val();
+                if (rates) {
+                    exchangeRates = rates;
+                    
+                    const fromCoin = document.getElementById('from-coin');
+                    const toCoin = document.getElementById('to-coin');
+                    
+                    fromCoin.innerHTML = '';
+                    toCoin.innerHTML = '';
+                    
+                    Object.keys(rates).forEach(coin => {
+                        fromCoin.innerHTML += `<option value="${coin}">${coin}</option>`;
+                        toCoin.innerHTML += `<option value="${coin}">${coin}</option>`;
+                    });
+                    
+                    calculateExchange();
+                }
+            });
+        }
+        
+        function calculateExchange() {
+            if (typeof exchangeRates !== 'object' || Object.keys(exchangeRates).length === 0) return;
+            const fromCoin = document.getElementById('from-coin').value;
+            const toCoin = document.getElementById('to-coin').value;
+            const fromAmount = parseFloat(document.getElementById('from-amount').value) || 0;
+            
+            if (fromCoin === toCoin) {
+                document.getElementById('to-amount').value = fromAmount.toFixed(8);
+                document.getElementById('exchange-rate').textContent = '1';
+                return;
+            }
+            
+            const rate = exchangeRates[fromCoin]?.[toCoin] || 0;
+            document.getElementById('to-amount').value = (fromAmount * rate).toFixed(8);
+            document.getElementById('exchange-rate').textContent = rate;
+            document.getElementById('from-coin-label').textContent = fromCoin;
+            document.getElementById('to-coin-label').textContent = toCoin;
+        }
+        
+        function executeExchange(){
+            const fromCoin = document.getElementById('from-coin').value;
+            const toCoin = document.getElementById('to-coin').value;
+            const fromAmount = parseFloat(document.getElementById('from-amount').value) || 0;
+            const toAmount = parseFloat(document.getElementById('to-amount').value) || 0;
+            
+            if (fromAmount <= 0) {
+                showPopup('Error', 'Please enter a valid amount.');
+                return;
+            }
+            
+            if (!userData.coins) userData.coins = {};
+            if (!userData.coins[fromCoin] || userData.coins[fromCoin] < fromAmount) {
+                showPopup('Error', `Insufficient ${fromCoin} balance.`);
+                return;
+            }
+            
+            // Update user's coin balances
+            const newFromAmount = (userData.coins[fromCoin] || 0) - fromAmount;
+            const newToAmount = (userData.coins[toCoin] || 0) + toAmount;
+            
+            const updates = {};
+            updates[`/users/${currentUser.uid}/coins/${fromCoin}`] = newFromAmount;
+            updates[`/users/${currentUser.uid}/coins/${toCoin}`] = newToAmount;
+            
+            database.ref().update(updates)
+            .then(() => {
+                showPopup('Success', `Successfully exchanged ${fromAmount} ${fromCoin} for ${toAmount} ${toCoin}.`);
+                userData.coins[fromCoin] = newFromAmount;
+                userData.coins[toCoin] = newToAmount;
+                document.getElementById('from-amount').value = '';
+                document.getElementById('to-amount').value = '';
+            })
+            .catch(error => {
+                showPopup('Error', 'Exchange failed. Please try again.');
+            });
+        }
+        
+        // --- Profile Gallery ---
+        function showProfileGallery() {
+            document.getElementById('gallery-popup').style.display = 'flex';
+        }
+        
+        function selectGalleryImage(el, imgUrl) {
+            document.querySelectorAll('.gallery-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            el.classList.add('selected');
+            selectedProfileImage = imgUrl;
+        }
+        
+        function saveProfilePicture() {
+            if (!selectedProfileImage) {
+                showPopup('Error', 'Please select a profile picture.');
+                return;
+            }
+            
+            database.ref('users/' + currentUser.uid).update({
+                profileImage: selectedProfileImage
+            })
+            .then(() => {
+                showPopup('Success', 'Profile picture updated successfully.');
+                userData.profileImage = selectedProfileImage;
+                updateUIWithUserData();
+                closeGallery();
+            })
+            .catch(error => {
+                showPopup('Error', 'Failed to update profile picture.');
+            });
+        }
+        
+        function closeGallery() {
+            document.getElementById('gallery-popup').style.display = 'none';
+        }
+        
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('password-display');
+            const eyeIcon = passwordInput.nextElementSibling;
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        }
+
+        // --- Helper Functions ---
+        function showPopup(title, message) {
+            document.getElementById('popup-title').textContent = title;
+            document.getElementById('popup-message').textContent = message;
+            document.getElementById('popup-buttons').innerHTML = `<button class="btn btn-primary" onclick="closePopup()">OK</button>`;
+            document.getElementById('popup-overlay').style.display = 'flex';
+        }
+
+        function showConfirmationPopup(title, message, onConfirm) {
+            document.getElementById('popup-title').textContent = title;
+            document.getElementById('popup-message').textContent = message;
+            const buttons = document.getElementById('popup-buttons');
+            buttons.innerHTML = `
+                <button class="btn btn-secondary" onclick="closePopup()">Cancel</button>
+                <button class="btn btn-primary" id="popup-confirm-btn">Confirm</button>
+            `;
+            document.getElementById('popup-confirm-btn').onclick = () => {
+                onConfirm();
+                closePopup();
+            };
+            document.getElementById('popup-overlay').style.display = 'flex';
+        }
+
+        function closePopup() {
+            document.getElementById('popup-overlay').style.display = 'none';
+        }
+        
+        function generateReferralCode() {
+            return Math.random().toString(36).substring(2, 10).toUpperCase();
+        }
+
+        // --- Other empty functions to be implemented ---
+        function loadReferralData() {}
+        function loadSavingsPlans() {}
+        function loadTransactionHistory(filter) {}
+        function showCreateGiftCard() { document.getElementById('create-gift-card').style.display = 'block'; }
+        function cancelCreateGiftCard() { document.getElementById('create-gift-card').style.display = 'none'; }
+        function showRedeemGiftCard() { document.getElementById('redeem-gift-card').style.display = 'block'; }
+        function cancelRedeemGiftCard() { document.getElementById('redeem-gift-card').style.display = 'none'; }
+        function redeemGiftCard(){}
+        function contactSupport(method){}
+        function filterAllHistory(type){}
+        function copyReferralCode(){}
+        function updatePassword(){}
+        function cancelPasswordUpdate(){}
+        function applyForLoan(){}
+        function showP2POfferForm(type) { showPopup('P2P', `Create ${type} offer form would appear here.`); }
+        function showMyP2POffers() { showPopup('P2P', 'A list of your P2P offers would appear here.'); }
+
+    </script>
+</body>
+</html>
